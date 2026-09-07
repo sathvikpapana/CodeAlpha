@@ -1,0 +1,610 @@
+/* =====================================================================
+   LUMEN CALCULATOR — STYLESHEET
+   ---------------------------------------------------------------------
+   DESIGN TOKENS
+   Color (dark theme, default):
+     --bg-start / --bg-end   deep navy gradient canvas
+     --glass                 translucent panel fill (glassmorphism)
+     --glass-border          hairline edge on glass panels
+     --accent / --accent-2   blue-neon gradient pair (signature color)
+     --text-primary/-muted   readout + label text
+   Type:
+     Display  -> 'Space Grotesk'  (brand, labels, buttons)
+     Numeric  -> 'JetBrains Mono' (the calculator readout — fixed-width
+                 digits so numbers never jitter as they change)
+     Body     -> 'Inter'          (history list, small UI text)
+   ===================================================================== */
+
+:root {
+  /* ---- Dark theme (default) ---- */
+  --bg-start: #060a16;
+  --bg-end: #101a35;
+  --glass: rgba(255, 255, 255, 0.055);
+  --glass-strong: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --accent: #2fd9ff;
+  --accent-2: #4f7dff;
+  --accent-soft: rgba(47, 217, 255, 0.14);
+  --text-primary: #eaf2ff;
+  --text-muted: #7f8db3;
+  --danger: #ff5470;
+  --shadow-color: rgba(0, 0, 0, 0.5);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 26px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---- Light theme overrides ---- */
+body[data-theme="light"] {
+  --bg-start: #eef3fb;
+  --bg-end: #dbe6f8;
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-strong: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(20, 40, 80, 0.12);
+  --accent: #0091b8;
+  --accent-2: #3b5fe0;
+  --accent-soft: rgba(0, 145, 184, 0.12);
+  --text-primary: #10182c;
+  --text-muted: #56637f;
+  --danger: #d63c5e;
+  --shadow-color: rgba(30, 45, 90, 0.18);
+}
+
+/* ---------------------------------------------------------------------
+   RESET
+--------------------------------------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--text-primary);
+  background: radial-gradient(circle at 20% 10%, var(--accent-soft), transparent 45%),
+              linear-gradient(160deg, var(--bg-start), var(--bg-end));
+  background-attachment: fixed;
+  transition: background 0.5s var(--ease), color 0.5s var(--ease);
+  padding: 32px 16px;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  background: none;
+}
+
+ul {
+  list-style: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   APP SHELL — positions calculator + history drawer side by side on
+   desktop, stacks/overlays on mobile
+--------------------------------------------------------------------- */
+.app-shell {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* ---------------------------------------------------------------------
+   CALCULATOR CARD (glassmorphism)
+--------------------------------------------------------------------- */
+.calculator {
+  width: min(92vw, 400px);
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 30px 60px -20px var(--shadow-color), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: box-shadow 0.4s var(--ease), border-color 0.4s var(--ease);
+}
+
+/* ---- Top bar ---- */
+.calc-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.brand-glyph {
+  color: var(--accent);
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.brand-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-toggle {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.25s var(--ease);
+}
+
+.mode-toggle[aria-pressed="true"] {
+  color: var(--bg-start);
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  box-shadow: 0 0 18px var(--accent-soft);
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  transition: all 0.25s var(--ease);
+  position: relative;
+}
+
+.icon-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 14px var(--accent-soft);
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Sun/moon crossfade based on theme */
+.icon-sun { display: none; }
+body[data-theme="light"] .icon-sun { display: block; }
+body[data-theme="light"] .icon-moon { display: none; }
+
+/* ---------------------------------------------------------------------
+   DISPLAY
+--------------------------------------------------------------------- */
+.display {
+  position: relative;
+  padding: 20px 18px;
+  border-radius: var(--radius-md);
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Subtle animated glow ring around the display — signature detail */
+.display::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(from 0deg, transparent, var(--accent-soft), transparent 30%);
+  animation: rotate-glow 6s linear infinite;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@keyframes rotate-glow {
+  to { transform: rotate(360deg); }
+}
+
+.display-expression {
+  position: relative;
+  z-index: 1;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  min-height: 1.2em;
+  overflow-x: auto;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.display-result-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.display-result {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  font-size: clamp(2rem, 8vw, 2.6rem);
+  text-align: right;
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: 100%;
+  transition: transform 0.15s var(--ease);
+}
+
+/* Pulse animation triggered on '=' press via .is-pulsing (added/removed by JS) */
+.display-result.is-pulsing {
+  animation: pulse-result 0.35s var(--ease);
+}
+
+@keyframes pulse-result {
+  0%   { transform: scale(1); text-shadow: 0 0 0 transparent; }
+  40%  { transform: scale(1.05); text-shadow: 0 0 20px var(--accent-soft); }
+  100% { transform: scale(1); text-shadow: 0 0 0 transparent; }
+}
+
+.display-result.is-error {
+  color: var(--danger);
+  font-size: 1.4rem;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all 0.25s var(--ease);
+}
+
+.copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.copy-btn .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.copy-toast {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  z-index: 2;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.3s var(--ease);
+  pointer-events: none;
+}
+
+.copy-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------------------------------------------------------------------
+   SCIENTIFIC PANEL
+--------------------------------------------------------------------- */
+.scientific-panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s var(--ease), opacity 0.3s var(--ease), margin 0.4s var(--ease);
+}
+
+.scientific-panel.is-open {
+  max-height: 200px;
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------
+   KEYPAD
+--------------------------------------------------------------------- */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.btn {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 0;
+  border-radius: var(--radius-sm);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  transition: transform 0.15s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-soft);
+}
+
+.btn:active {
+  transform: scale(0.94);
+}
+
+.btn-sci {
+  font-size: 0.85rem;
+  padding: 12px 0;
+  color: var(--text-muted);
+}
+
+.btn-fn {
+  color: var(--danger);
+  background: rgba(255, 84, 112, 0.08);
+}
+
+.btn-op {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 1.2rem;
+}
+
+.btn-zero {
+  grid-column: span 1;
+}
+
+.btn-equals {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  color: #04101f;
+  font-size: 1.3rem;
+  box-shadow: 0 8px 24px -8px var(--accent-2);
+}
+
+.btn-equals:hover {
+  box-shadow: 0 8px 28px -6px var(--accent-2), 0 0 20px var(--accent-soft);
+}
+
+/* ---- Ripple animation (span injected by JS on click) ---- */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(0);
+  animation: ripple-effect 0.55s var(--ease);
+  pointer-events: none;
+}
+
+body[data-theme="light"] .ripple {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+@keyframes ripple-effect {
+  to {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   HISTORY DRAWER
+--------------------------------------------------------------------- */
+.history-drawer {
+  width: 280px;
+  max-height: 640px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 30px 60px -20px var(--shadow-color);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-header h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+.text-btn {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  transition: color 0.2s var(--ease);
+}
+
+.text-btn:hover {
+  color: var(--danger);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  animation: item-in 0.3s var(--ease);
+}
+
+@keyframes item-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.history-item:hover {
+  border-color: var(--accent);
+  transform: translateX(-2px);
+}
+
+.history-expression {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-result {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.history-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 20px 0;
+}
+
+/* ---------------------------------------------------------------------
+   FOOTER
+--------------------------------------------------------------------- */
+.page-footer {
+  margin-top: 22px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------
+   RESPONSIVE LAYOUT
+--------------------------------------------------------------------- */
+
+/* Desktop: history drawer sits statically beside the calculator.
+   We use a class toggled by JS to show/hide it even on desktop. */
+.history-drawer {
+  transform: translateX(0);
+}
+
+.drawer-backdrop {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  /* On tablet/mobile the history becomes an overlay drawer sliding
+     in from the right, with a dimmed backdrop behind it. */
+  .app-shell {
+    display: block;
+  }
+
+  .history-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    z-index: 101;
+    transform: translateX(100%);
+    transition: transform 0.4s var(--ease);
+  }
+
+  .history-drawer.is-open {
+    transform: translateX(0);
+  }
+
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease);
+  }
+
+  .drawer-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .calculator {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .btn {
+    padding: 14px 0;
+    font-size: 0.95rem;
+  }
+
+  .display-result {
+    font-size: clamp(1.7rem, 9vw, 2.2rem);
+  }
+
+  .history-drawer {
+    width: 100vw;
+  }
+}

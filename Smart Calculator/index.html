@@ -1,1 +1,133 @@
-Smart Calculator/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen &mdash; Smart Calculator</title>
+
+  <!-- Space Grotesk (display/UI), JetBrains Mono (numeric readout), Inter (small text) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="dark">
+
+  <div class="app-shell">
+
+    <!-- ============================= -->
+    <!-- CALCULATOR CARD               -->
+    <!-- ============================= -->
+    <main class="calculator" id="calculator">
+
+      <!-- Top bar: brand, mode switch, theme toggle, history toggle -->
+      <header class="calc-topbar">
+        <div class="brand">
+          <span class="brand-glyph">&fnof;(x)</span>
+          <span class="brand-name">Lumen</span>
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Standard / Scientific mode switch -->
+          <button class="mode-toggle" id="modeToggle" aria-pressed="false" title="Toggle scientific mode">
+            <span>Scientific</span>
+          </button>
+
+          <!-- Light / dark theme toggle -->
+          <button class="icon-btn" id="themeToggle" aria-label="Toggle light/dark theme" title="Toggle theme">
+            <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+
+          <!-- History drawer toggle -->
+          <button class="icon-btn" id="historyToggle" aria-label="Toggle calculation history" title="History">
+            <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.7 3M3 4v5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ============================= -->
+      <!-- DISPLAY                       -->
+      <!-- ============================= -->
+      <section class="display" id="display">
+        <div class="display-expression" id="expression" aria-live="polite">0</div>
+        <div class="display-result-row">
+          <div class="display-result" id="result">0</div>
+          <button class="copy-btn" id="copyBtn" aria-label="Copy result" title="Copy result">
+            <svg class="icon" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <span class="copy-toast" id="copyToast">Copied</span>
+      </section>
+
+      <!-- ============================= -->
+      <!-- SCIENTIFIC PANEL (hidden by default) -->
+      <!-- ============================= -->
+      <section class="scientific-panel" id="scientificPanel">
+        <button class="btn btn-sci" data-action="sin">sin</button>
+        <button class="btn btn-sci" data-action="cos">cos</button>
+        <button class="btn btn-sci" data-action="tan">tan</button>
+        <button class="btn btn-sci" data-action="sqrt">&radic;x</button>
+        <button class="btn btn-sci" data-action="square">x&sup2;</button>
+        <button class="btn btn-sci" data-action="power">x^y</button>
+        <button class="btn btn-sci" data-action="pi">&pi;</button>
+        <button class="btn btn-sci" data-action="e">e</button>
+        <button class="btn btn-sci" data-action="log">log</button>
+      </section>
+
+      <!-- ============================= -->
+      <!-- BUTTON GRID                   -->
+      <!-- ============================= -->
+      <section class="keypad">
+        <button class="btn btn-fn" data-action="clear">C</button>
+        <button class="btn btn-fn" data-action="delete">&#9003;</button>
+        <button class="btn btn-fn" data-action="percent">%</button>
+        <button class="btn btn-op" data-action="divide">&divide;</button>
+
+        <button class="btn btn-num" data-value="7">7</button>
+        <button class="btn btn-num" data-value="8">8</button>
+        <button class="btn btn-num" data-value="9">9</button>
+        <button class="btn btn-op" data-action="multiply">&times;</button>
+
+        <button class="btn btn-num" data-value="4">4</button>
+        <button class="btn btn-num" data-value="5">5</button>
+        <button class="btn btn-num" data-value="6">6</button>
+        <button class="btn btn-op" data-action="subtract">&minus;</button>
+
+        <button class="btn btn-num" data-value="1">1</button>
+        <button class="btn btn-num" data-value="2">2</button>
+        <button class="btn btn-num" data-value="3">3</button>
+        <button class="btn btn-op" data-action="add">+</button>
+
+        <button class="btn btn-num btn-zero" data-value="0">0</button>
+        <button class="btn btn-num" data-value=".">.</button>
+        <button class="btn btn-equals" data-action="equals">=</button>
+      </section>
+    </main>
+
+    <!-- ============================= -->
+    <!-- HISTORY DRAWER                -->
+    <!-- ============================= -->
+    <aside class="history-drawer" id="historyDrawer" aria-hidden="true">
+      <div class="history-header">
+        <h2>History</h2>
+        <button class="text-btn" id="clearHistory">Clear all</button>
+      </div>
+      <ul class="history-list" id="historyList">
+        <!-- History items injected by script.js -->
+      </ul>
+      <p class="history-empty" id="historyEmpty">No calculations yet.</p>
+    </aside>
+
+    <!-- Backdrop for mobile history drawer -->
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  </div>
+
+  <footer class="page-footer">
+    <p>Lumen Calculator &mdash; built with HTML, CSS &amp; vanilla JavaScript.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
