@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Future Tech Gallery</title>
+
+  <!-- Google Fonts: Space Grotesk (display), Inter (body), JetBrains Mono (meta/labels) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============================= -->
+  <!-- HEADER / HERO SECTION         -->
+  <!-- ============================= -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-mark">&lt;/&gt;</span>
+        <span class="brand-name">Spectra<span class="brand-dot">.</span></span>
+      </div>
+      <p class="brand-tagline">A visual index of AI, code, robotics &amp; cloud systems</p>
+    </div>
+
+    <!-- Decorative scanning line, purely aesthetic -->
+    <div class="scan-line" aria-hidden="true"></div>
+  </header>
+
+  <!-- ============================= -->
+  <!-- CATEGORY FILTER BAR           -->
+  <!-- ============================= -->
+  <nav class="filter-bar" aria-label="Filter gallery by category">
+    <div class="filter-track" id="filterTrack">
+      <button class="filter-btn is-active" data-filter="all">
+        <span class="filter-index">00</span> All
+      </button>
+      <button class="filter-btn" data-filter="ai">
+        <span class="filter-index">01</span> AI
+      </button>
+      <button class="filter-btn" data-filter="coding">
+        <span class="filter-index">02</span> Coding
+      </button>
+      <button class="filter-btn" data-filter="robotics">
+        <span class="filter-index">03</span> Robotics
+      </button>
+      <button class="filter-btn" data-filter="cloud">
+        <span class="filter-index">04</span> Cloud
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============================= -->
+  <!-- MAIN GALLERY GRID             -->
+  <!-- ============================= -->
+  <main class="gallery-wrapper">
+    <section class="gallery-grid" id="galleryGrid">
+      <!-- Gallery items are rendered dynamically by script.js from the imageData array,
+           but static markup is included here as the semantic source of truth /
+           no-JS fallback. Each figure maps 1:1 to an entry in script.js. -->
+
+      <!-- AI -->
+      <figure class="gallery-item" data-category="ai" data-index="0">
+        <img src="images/ai1.jpg" alt="Neural network visualization" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">AI</span>
+          <span class="item-title">Neural Network Visualization</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="ai" data-index="1">
+        <img src="images/ai2.jpg" alt="Machine learning data model" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">AI</span>
+          <span class="item-title">Machine Learning Model</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="ai" data-index="2">
+        <img src="images/ai3.jpg" alt="Generative AI artwork" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">AI</span>
+          <span class="item-title">Generative AI Artwork</span>
+        </figcaption>
+      </figure>
+
+      <!-- Coding -->
+      <figure class="gallery-item" data-category="coding" data-index="3">
+        <img src="images/code1.jpg" alt="Source code on screen" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Coding</span>
+          <span class="item-title">Source Code Close-up</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="coding" data-index="4">
+        <img src="images/code2.jpg" alt="Developer workspace setup" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Coding</span>
+          <span class="item-title">Developer Workspace</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="coding" data-index="5">
+        <img src="images/code3.jpg" alt="Terminal running build scripts" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Coding</span>
+          <span class="item-title">Terminal &amp; Build Scripts</span>
+        </figcaption>
+      </figure>
+
+      <!-- Robotics -->
+      <figure class="gallery-item" data-category="robotics" data-index="6">
+        <img src="images/robot1.jpg" alt="Robotic arm on assembly line" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Robotics</span>
+          <span class="item-title">Robotic Arm Assembly</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="robotics" data-index="7">
+        <img src="images/robot2.jpg" alt="Humanoid robot prototype" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Robotics</span>
+          <span class="item-title">Humanoid Prototype</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="robotics" data-index="8">
+        <img src="images/robot3.jpg" alt="Autonomous drone in flight" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Robotics</span>
+          <span class="item-title">Autonomous Drone</span>
+        </figcaption>
+      </figure>
+
+      <!-- Cloud -->
+      <figure class="gallery-item" data-category="cloud" data-index="9">
+        <img src="images/cloud1.jpg" alt="Cloud data center server racks" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Cloud</span>
+          <span class="item-title">Data Center Racks</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="cloud" data-index="10">
+        <img src="images/cloud2.jpg" alt="Cloud network architecture diagram" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Cloud</span>
+          <span class="item-title">Network Architecture</span>
+        </figcaption>
+      </figure>
+
+      <figure class="gallery-item" data-category="cloud" data-index="11">
+        <img src="images/cloud3.jpg" alt="Cloud storage and sync visualization" loading="lazy" />
+        <figcaption class="item-overlay">
+          <span class="item-tag">Cloud</span>
+          <span class="item-title">Storage &amp; Sync</span>
+        </figcaption>
+      </figure>
+
+    </section>
+
+    <!-- Empty state shown when a filter matches nothing (kept hidden by default) -->
+    <p class="empty-state" id="emptyState" hidden>No images in this category yet.</p>
+  </main>
+
+  <!-- ============================= -->
+  <!-- LIGHTBOX / MODAL VIEWER       -->
+  <!-- ============================= -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+
+    <div class="lightbox-shell">
+      <!-- Top meta bar: category tag + counter + close -->
+      <div class="lightbox-meta">
+        <span class="lightbox-tag" id="lightboxTag">AI</span>
+        <span class="lightbox-counter" id="lightboxCounter">01 / 12</span>
+        <button class="lightbox-close" id="lightboxClose" aria-label="Close viewer (Esc)">
+          <span></span><span></span>
+        </button>
+      </div>
+
+      <!-- Image stage -->
+      <div class="lightbox-stage">
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Previous image">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <figure class="lightbox-figure">
+          <img src="" alt="" id="lightboxImage" />
+          <figcaption class="lightbox-caption" id="lightboxCaption"></figcaption>
+        </figure>
+
+        <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Next image">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <p class="lightbox-hint">Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> to navigate &middot; <kbd>Esc</kbd> to close</p>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>Spectra Gallery &mdash; built with HTML, CSS &amp; JavaScript. Drop your own images into <code>/images</code>.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
