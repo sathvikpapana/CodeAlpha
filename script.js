@@ -1,11 +1,15 @@
 /* =====================================================================
-   LUMEN CALCULATOR — SCRIPT.JS
+   AARAV.DEV PORTFOLIO — SCRIPT.JS
    Responsible for:
-     1. Calculator state machine (digit entry, operators, chaining)
-     2. Scientific functions (sin, cos, tan, sqrt, square, power, π, e, log)
-     3. History panel backed by localStorage (last 10 calculations)
-     4. Copy-to-clipboard, theme toggle, ripple FX
-     5. Full keyboard support
+     1. Sticky navbar background + active-link highlighting on scroll
+     2. Mobile hamburger menu
+     3. Smooth scrolling for in-page anchor links
+     4. Typing animation in the hero
+     5. Scroll reveal animations (IntersectionObserver)
+     6. Animated skill progress bars (triggered on reveal)
+     7. Back-to-top button
+     8. Theme toggle (persisted in localStorage)
+     9. Contact form validation
    ===================================================================== */
 
 (function () {
@@ -14,367 +18,188 @@
   /* -------------------------------------------------------------------
      DOM REFERENCES
   ------------------------------------------------------------------- */
-  const expressionEl   = document.getElementById("expression");
-  const resultEl       = document.getElementById("result");
-  const keypad          = document.querySelector(".keypad");
-  const scientificPanel = document.getElementById("scientificPanel");
-  const modeToggle       = document.getElementById("modeToggle");
-  const themeToggle       = document.getElementById("themeToggle");
-  const historyToggle      = document.getElementById("historyToggle");
-  const historyDrawer       = document.getElementById("historyDrawer");
-  const drawerBackdrop        = document.getElementById("drawerBackdrop");
-  const historyList             = document.getElementById("historyList");
-  const historyEmpty             = document.getElementById("historyEmpty");
-  const clearHistoryBtn           = document.getElementById("clearHistory");
-  const copyBtn                    = document.getElementById("copyBtn");
-  const copyToast                   = document.getElementById("copyToast");
+  const navbar        = document.getElementById("navbar");
+  const navLinks       = document.getElementById("navLinks");
+  const hamburger        = document.getElementById("hamburger");
+  const navLinkEls         = document.querySelectorAll(".nav-link[data-nav]");
+  const sections             = document.querySelectorAll("main section[id]");
 
-  const HISTORY_KEY = "lumen_calc_history";
-  const THEME_KEY = "lumen_calc_theme";
-  const MAX_HISTORY = 10;
+  const themeToggle = document.getElementById("themeToggle");
+  const backToTop     = document.getElementById("backToTop");
+  const resumeBtn        = document.getElementById("resumeBtn");
+  const currentYearEl       = document.getElementById("currentYear");
 
-  /* -------------------------------------------------------------------
-     CALCULATOR STATE
-     A classic "running total" state machine (not a full expression
-     parser) — predictable, easy to reason about, and matches the
-     behaviour users expect from a standard calculator.
-  ------------------------------------------------------------------- */
-  const state = {
-    previous: null,     // number entered before the operator, as string
-    operator: null,     // '+', '-', '*', '/'
-    current: "0",        // number currently being typed / displayed
-    overwrite: false,     // true right after an operator or equals,
-                           // meaning the next digit should start fresh
-    expressionText: "",    // human-readable trail shown above the result
-  };
+  const typingTextEl = document.getElementById("typingText");
+
+  const contactForm = document.getElementById("contactForm");
+  const formSuccess   = document.getElementById("formSuccess");
+
+  const THEME_KEY = "aaravdev_theme";
 
   /* -------------------------------------------------------------------
-     RENDERING
+     FOOTER YEAR
   ------------------------------------------------------------------- */
-  function render() {
-    resultEl.textContent = formatForDisplay(state.current);
-    resultEl.classList.remove("is-error");
-    expressionEl.textContent = state.expressionText || "0";
-  }
-
-  function formatForDisplay(value) {
-    if (value === "Error") return "Error";
-    // Avoid runaway decimal length while keeping the value accurate
-    const num = Number(value);
-    if (Number.isNaN(num)) return value;
-    if (!isFinite(num)) return "Error";
-
-    // Preserve a trailing decimal point while the user is still typing
-    if (typeof value === "string" && value.endsWith(".")) return value;
-
-    const str = num.toString();
-    if (str.length <= 14) return str;
-    return num.toPrecision(10).replace(/\.?0+$/, "");
-  }
-
-  function showError() {
-    state.current = "Error";
-    state.previous = null;
-    state.operator = null;
-    state.overwrite = true;
-    resultEl.textContent = "Error";
-    resultEl.classList.add("is-error");
-  }
+  currentYearEl.textContent = new Date().getFullYear();
 
   /* -------------------------------------------------------------------
-     OPERATOR SYMBOLS (internal key -> display glyph)
+     STICKY NAVBAR BACKGROUND ON SCROLL
   ------------------------------------------------------------------- */
-  const OP_SYMBOL = { add: "+", subtract: "\u2212", multiply: "\u00d7", divide: "\u00f7", power: "^" };
+  function handleNavbarScroll() {
+    navbar.classList.toggle("is-scrolled", window.scrollY > 40);
+  }
+  window.addEventListener("scroll", handleNavbarScroll, { passive: true });
+  handleNavbarScroll();
 
   /* -------------------------------------------------------------------
-     CORE INPUT HANDLERS
+     MOBILE HAMBURGER MENU
   ------------------------------------------------------------------- */
-  function inputDigit(digit) {
-    if (state.current === "Error" || state.overwrite) {
-      state.current = digit === "." ? "0." : digit;
-      state.overwrite = false;
-      render();
-      return;
-    }
-
-    if (digit === "." && state.current.includes(".")) return; // no double decimals
-    if (state.current === "0" && digit !== ".") {
-      state.current = digit; // replace leading zero
-    } else {
-      state.current += digit;
-    }
-    render();
+  function toggleMobileNav() {
+    const isOpen = navLinks.classList.toggle("is-open");
+    hamburger.classList.toggle("is-open", isOpen);
+    hamburger.setAttribute("aria-expanded", String(isOpen));
   }
 
-  function chooseOperator(opKey) {
-    if (state.current === "Error") return;
+  hamburger.addEventListener("click", toggleMobileNav);
 
-    // Chain operations: if an operator is already pending, resolve it first
-    if (state.operator && !state.overwrite) {
-      compute();
-    }
-
-    state.previous = state.current;
-    state.operator = opKey;
-    state.overwrite = true;
-    state.expressionText = `${trimTrailingDot(state.previous)} ${OP_SYMBOL[opKey]}`;
-    render();
-  }
-
-  function trimTrailingDot(v) {
-    return v.endsWith(".") ? v.slice(0, -1) : v;
-  }
-
-  function compute() {
-    if (state.operator === null || state.previous === null) return;
-
-    const a = parseFloat(state.previous);
-    const b = parseFloat(state.current);
-    const symbol = OP_SYMBOL[state.operator]; // captured before we clear state.operator
-    let output;
-
-    switch (state.operator) {
-      case "add":
-        output = a + b;
-        break;
-      case "subtract":
-        output = a - b;
-        break;
-      case "multiply":
-        output = a * b;
-        break;
-      case "divide":
-        // Divide-by-zero error handling
-        if (b === 0) {
-          showError();
-          addHistoryEntry(`${a} \u00f7 ${b}`, "Error");
-          return;
-        }
-        output = a / b;
-        break;
-      default:
-        return;
-    }
-
-    state.expressionText = `${a} ${symbol} ${b} =`;
-    state.current = String(output);
-    state.previous = null;
-    state.operator = null;
-    state.overwrite = true;
-
-    addHistoryEntry(`${a} ${symbol} ${b}`, formatForDisplay(state.current));
-    render();
-    pulseResult();
-  }
-
-  function handleEquals() {
-    if (state.current === "Error") return;
-    if (state.operator === null) return; // nothing to compute yet
-    compute();
-  }
-
-  function clearAll() {
-    state.previous = null;
-    state.operator = null;
-    state.current = "0";
-    state.overwrite = false;
-    state.expressionText = "";
-    render();
-  }
-
-  function deleteLast() {
-    if (state.current === "Error" || state.overwrite) {
-      clearAll();
-      return;
-    }
-    state.current = state.current.length > 1 ? state.current.slice(0, -1) : "0";
-    render();
-  }
-
-  function applyPercent() {
-    if (state.current === "Error") return;
-    const value = parseFloat(state.current);
-    state.current = String(value / 100);
-    state.overwrite = true;
-    render();
-  }
+  // Close the mobile menu whenever a nav link is tapped
+  navLinkEls.forEach((link) => {
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("is-open");
+      hamburger.classList.remove("is-open");
+      hamburger.setAttribute("aria-expanded", "false");
+    });
+  });
 
   /* -------------------------------------------------------------------
-     SCIENTIFIC FUNCTIONS
-     All trig functions operate in degrees for everyday usability.
+     SMOOTH SCROLLING FOR ALL IN-PAGE ANCHOR LINKS
+     (CSS `scroll-behavior: smooth` already covers most browsers, this
+     adds a JS fallback plus lets us account for the fixed navbar height)
   ------------------------------------------------------------------- */
-  function applyScientific(action) {
-    if (state.current === "Error") return;
-    const value = parseFloat(state.current);
-    let output;
-    let label;
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener("click", (e) => {
+      const targetId = anchor.getAttribute("href");
+      if (targetId.length <= 1) return; // ignore bare "#"
+      const target = document.querySelector(targetId);
+      if (!target) return;
 
-    switch (action) {
-      case "sin":
-        output = Math.sin(toRadians(value));
-        label = `sin(${value})`;
-        break;
-      case "cos":
-        output = Math.cos(toRadians(value));
-        label = `cos(${value})`;
-        break;
-      case "tan":
-        output = Math.tan(toRadians(value));
-        label = `tan(${value})`;
-        break;
-      case "sqrt":
-        if (value < 0) return showError();
-        output = Math.sqrt(value);
-        label = `\u221a(${value})`;
-        break;
-      case "square":
-        output = value * value;
-        label = `${value}\u00b2`;
-        break;
-      case "power":
-        // x^y — sets up a pending "power" operator so the user can type
-        // the exponent next, reusing the standard operator flow
-        chooseOperator("power");
-        return;
-      case "pi":
-        output = Math.PI;
-        label = "\u03c0";
-        break;
-      case "e":
-        output = Math.E;
-        label = "e";
-        break;
-      case "log":
-        if (value <= 0) return showError();
-        output = Math.log10(value);
-        label = `log(${value})`;
-        break;
-      default:
-        return;
-    }
-
-    state.current = String(output);
-    state.expressionText = `${label} =`;
-    state.overwrite = true;
-    render();
-    pulseResult();
-    addHistoryEntry(label, formatForDisplay(state.current));
-  }
-
-  function toRadians(deg) {
-    return (deg * Math.PI) / 180;
-  }
-
-  /* Extend compute() to understand the "power" pseudo-operator */
-  const originalCompute = compute;
-  compute = function () {
-    if (state.operator === "power") {
-      const a = parseFloat(state.previous);
-      const b = parseFloat(state.current);
-      const output = Math.pow(a, b);
-      state.expressionText = `${a} ^ ${b} =`;
-      state.current = String(output);
-      state.previous = null;
-      state.operator = null;
-      state.overwrite = true;
-      addHistoryEntry(`${a} ^ ${b}`, formatForDisplay(state.current));
-      render();
-      pulseResult();
-      return;
-    }
-    originalCompute();
-  };
+      e.preventDefault();
+      const navHeight = navbar.offsetHeight;
+      const top = target.getBoundingClientRect().top + window.scrollY - navHeight + 1;
+      window.scrollTo({ top, behavior: "smooth" });
+    });
+  });
 
   /* -------------------------------------------------------------------
-     RESULT PULSE ANIMATION (triggered on '=' and scientific results)
+     ACTIVE NAV LINK HIGHLIGHTING BASED ON SCROLL POSITION
   ------------------------------------------------------------------- */
-  function pulseResult() {
-    resultEl.classList.remove("is-pulsing");
-    // Force reflow so the animation can restart on repeated presses
-    void resultEl.offsetWidth;
-    resultEl.classList.add("is-pulsing");
-  }
+  function updateActiveNavLink() {
+    const scrollPos = window.scrollY + navbar.offsetHeight + 60;
+    let currentId = sections[0] ? sections[0].id : "";
 
-  /* -------------------------------------------------------------------
-     HISTORY (localStorage, capped at MAX_HISTORY entries)
-  ------------------------------------------------------------------- */
-  function loadHistory() {
-    try {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      console.warn("Could not read calculator history:", err);
-      return [];
-    }
-  }
+    sections.forEach((section) => {
+      if (scrollPos >= section.offsetTop) {
+        currentId = section.id;
+      }
+    });
 
-  function saveHistory(list) {
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-    } catch (err) {
-      console.warn("Could not save calculator history:", err);
-    }
-  }
-
-  function addHistoryEntry(expression, result) {
-    const list = loadHistory();
-    list.unshift({ expression, result, ts: Date.now() });
-    const trimmed = list.slice(0, MAX_HISTORY);
-    saveHistory(trimmed);
-    renderHistory();
-  }
-
-  function renderHistory() {
-    const list = loadHistory();
-    historyList.innerHTML = "";
-    historyEmpty.hidden = list.length > 0;
-
-    list.forEach((entry) => {
-      const li = document.createElement("li");
-      li.className = "history-item";
-      li.innerHTML = `
-        <div class="history-expression">${entry.expression}</div>
-        <div class="history-result">${entry.result}</div>
-      `;
-      // Clicking a history item loads its result back into the display
-      li.addEventListener("click", () => {
-        state.current = String(entry.result);
-        state.previous = null;
-        state.operator = null;
-        state.overwrite = true;
-        state.expressionText = entry.expression + " =";
-        render();
-        closeHistoryDrawer();
-      });
-      historyList.appendChild(li);
+    navLinkEls.forEach((link) => {
+      link.classList.toggle("is-active", link.getAttribute("href") === `#${currentId}`);
     });
   }
+  window.addEventListener("scroll", updateActiveNavLink, { passive: true });
+  updateActiveNavLink();
 
-  function clearHistory() {
-    saveHistory([]);
-    renderHistory();
+  /* -------------------------------------------------------------------
+     TYPING ANIMATION (hero role text)
+  ------------------------------------------------------------------- */
+  const ROLES = [
+    "accessible web apps.",
+    "scalable back-end systems.",
+    "delightful user interfaces.",
+    "performant React applications.",
+  ];
+
+  let roleIndex = 0;
+  let charIndex = 0;
+  let isDeleting = false;
+
+  function typeLoop() {
+    const currentRole = ROLES[roleIndex];
+
+    if (isDeleting) {
+      charIndex -= 1;
+    } else {
+      charIndex += 1;
+    }
+
+    typingTextEl.textContent = currentRole.slice(0, charIndex);
+
+    let delay = isDeleting ? 40 : 80;
+
+    if (!isDeleting && charIndex === currentRole.length) {
+      delay = 1400; // pause at full word before deleting
+      isDeleting = true;
+    } else if (isDeleting && charIndex === 0) {
+      isDeleting = false;
+      roleIndex = (roleIndex + 1) % ROLES.length;
+      delay = 300;
+    }
+
+    setTimeout(typeLoop, delay);
+  }
+
+  typeLoop();
+
+  /* -------------------------------------------------------------------
+     SCROLL REVEAL ANIMATIONS + SKILL BAR FILL
+     A single IntersectionObserver drives both: any element with the
+     `.reveal` class fades/slides in, and skill bars additionally
+     animate their fill width once they enter the viewport.
+  ------------------------------------------------------------------- */
+  const revealEls = document.querySelectorAll(".reveal");
+
+  const revealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+
+        entry.target.classList.add("is-visible");
+
+        // If this revealed element is (or contains) a skill group,
+        // animate each bar's fill to its target percentage.
+        entry.target.querySelectorAll(".skill-bar").forEach(animateSkillBar);
+
+        observer.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.15 }
+  );
+
+  revealEls.forEach((el) => revealObserver.observe(el));
+
+  function animateSkillBar(barEl) {
+    const target = barEl.getAttribute("data-skill");
+    const fill = barEl.querySelector(".skill-fill");
+    if (!fill || !target) return;
+    // Small timeout lets the reveal transition start first for a
+    // more polished, staggered feel rather than everything firing at once
+    setTimeout(() => {
+      fill.style.width = `${target}%`;
+    }, 150);
   }
 
   /* -------------------------------------------------------------------
-     HISTORY DRAWER OPEN/CLOSE (mobile overlay + desktop panel)
+     BACK TO TOP BUTTON
   ------------------------------------------------------------------- */
-  function openHistoryDrawer() {
-    historyDrawer.classList.add("is-open");
-    drawerBackdrop.classList.add("is-open");
-    historyDrawer.setAttribute("aria-hidden", "false");
+  function handleBackToTopVisibility() {
+    backToTop.classList.toggle("is-visible", window.scrollY > 480);
   }
+  window.addEventListener("scroll", handleBackToTopVisibility, { passive: true });
+  handleBackToTopVisibility();
 
-  function closeHistoryDrawer() {
-    historyDrawer.classList.remove("is-open");
-    drawerBackdrop.classList.remove("is-open");
-    historyDrawer.setAttribute("aria-hidden", "true");
-  }
-
-  historyToggle.addEventListener("click", () => {
-    historyDrawer.classList.contains("is-open") ? closeHistoryDrawer() : openHistoryDrawer();
+  backToTop.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
-  drawerBackdrop.addEventListener("click", closeHistoryDrawer);
-  clearHistoryBtn.addEventListener("click", clearHistory);
 
   /* -------------------------------------------------------------------
      THEME TOGGLE (persisted in localStorage)
@@ -395,142 +220,90 @@
   })();
 
   /* -------------------------------------------------------------------
-     SCIENTIFIC MODE TOGGLE
+     DOWNLOAD RESUME (placeholder)
+     Replace `resumeBtn.href` with a real PDF path (e.g. "assets/resume.pdf")
+     once you have a resume file to ship with the site.
   ------------------------------------------------------------------- */
-  modeToggle.addEventListener("click", () => {
-    const isOpen = scientificPanel.classList.toggle("is-open");
-    modeToggle.setAttribute("aria-pressed", String(isOpen));
-  });
-
-  /* -------------------------------------------------------------------
-     COPY RESULT TO CLIPBOARD
-  ------------------------------------------------------------------- */
-  copyBtn.addEventListener("click", async () => {
-    const text = resultEl.textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      // Fallback for browsers without Clipboard API permission
-      const temp = document.createElement("textarea");
-      temp.value = text;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand("copy");
-      document.body.removeChild(temp);
+  resumeBtn.addEventListener("click", (e) => {
+    if (resumeBtn.getAttribute("href") === "#") {
+      e.preventDefault();
+      alert("Resume placeholder — add your PDF and update the Download Resume link in index.html.");
     }
-    copyToast.classList.add("is-visible");
-    setTimeout(() => copyToast.classList.remove("is-visible"), 1200);
   });
 
   /* -------------------------------------------------------------------
-     RIPPLE BUTTON ANIMATION
+     CONTACT FORM VALIDATION
+     No backend is wired up — on successful validation we simply show
+     a success message. Swap the `submitForm` body for a real fetch()
+     call to your API or form service (e.g. Formspree) when ready.
   ------------------------------------------------------------------- */
-  function attachRipple(button) {
-    button.addEventListener("click", (e) => {
-      const rect = button.getBoundingClientRect();
-      const ripple = document.createElement("span");
-      const size = Math.max(rect.width, rect.height);
-      const x = (e.clientX || rect.left + rect.width / 2) - rect.left - size / 2;
-      const y = (e.clientY || rect.top + rect.height / 2) - rect.top - size / 2;
-
-      ripple.className = "ripple";
-      ripple.style.width = ripple.style.height = `${size}px`;
-      ripple.style.left = `${x}px`;
-      ripple.style.top = `${y}px`;
-
-      button.appendChild(ripple);
-      ripple.addEventListener("animationend", () => ripple.remove());
-    });
-  }
-
-  document.querySelectorAll(".btn").forEach(attachRipple);
-
-  /* -------------------------------------------------------------------
-     BUTTON CLICK ROUTING (event delegation)
-  ------------------------------------------------------------------- */
-  document.querySelectorAll(".btn[data-value]").forEach((btn) => {
-    btn.addEventListener("click", () => inputDigit(btn.dataset.value));
-  });
-
-  keypad.addEventListener("click", (e) => {
-    const btn = e.target.closest(".btn[data-action]");
-    if (!btn) return;
-    routeAction(btn.dataset.action);
-  });
-
-  scientificPanel.addEventListener("click", (e) => {
-    const btn = e.target.closest(".btn[data-action]");
-    if (!btn) return;
-    routeAction(btn.dataset.action);
-  });
-
-  function routeAction(action) {
-    switch (action) {
-      case "clear":
-        clearAll();
-        break;
-      case "delete":
-        deleteLast();
-        break;
-      case "percent":
-        applyPercent();
-        break;
-      case "add":
-      case "subtract":
-      case "multiply":
-      case "divide":
-        chooseOperator(action);
-        break;
-      case "equals":
-        handleEquals();
-        break;
-      case "sin":
-      case "cos":
-      case "tan":
-      case "sqrt":
-      case "square":
-      case "power":
-      case "pi":
-      case "e":
-      case "log":
-        applyScientific(action);
-        break;
-    }
-  }
-
-  /* -------------------------------------------------------------------
-     KEYBOARD SUPPORT
-  ------------------------------------------------------------------- */
-  const KEY_MAP = {
-    "+": "add",
-    "-": "subtract",
-    "*": "multiply",
-    "/": "divide",
-    "Enter": "equals",
-    "=": "equals",
-    "Backspace": "delete",
-    "Escape": "clear",
-    "%": "percent",
+  const validators = {
+    name: (value) => value.trim().length >= 2 || "Please enter your name (2+ characters).",
+    email: (value) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) || "Please enter a valid email address.",
+    subject: (value) => value.trim().length >= 3 || "Please enter a short subject line.",
+    message: (value) => value.trim().length >= 10 || "Your message should be at least 10 characters.",
   };
 
-  document.addEventListener("keydown", (e) => {
-    if (/^[0-9]$/.test(e.key)) {
-      inputDigit(e.key);
-      return;
+  function validateField(input) {
+    const rule = validators[input.name];
+    if (!rule) return true;
+
+    const result = rule(input.value);
+    const group = input.closest(".form-group");
+    const errorEl = group.querySelector(".form-error");
+
+    if (result === true) {
+      group.classList.remove("has-error");
+      errorEl.textContent = "";
+      return true;
     }
-    if (e.key === ".") {
-      inputDigit(".");
-      return;
-    }
-    if (KEY_MAP[e.key]) {
-      e.preventDefault();
-      routeAction(KEY_MAP[e.key]);
-    }
+
+    group.classList.add("has-error");
+    errorEl.textContent = result;
+    return false;
+  }
+
+  // Validate on blur for immediate, friendly feedback
+  contactForm.querySelectorAll("input, textarea").forEach((input) => {
+    input.addEventListener("blur", () => validateField(input));
+    input.addEventListener("input", () => {
+      // Clear the error as soon as the field becomes valid again
+      if (input.closest(".form-group").classList.contains("has-error")) {
+        validateField(input);
+      }
+    });
   });
 
-  /* -------------------------------------------------------------------
-     INIT
-  ------------------------------------------------------------------- */
-  render();
-  renderHistory();
+  contactForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    formSuccess.classList.remove("is-visible");
+
+    const fields = contactForm.querySelectorAll("input, textarea");
+    let allValid = true;
+
+    fields.forEach((field) => {
+      const valid = validateField(field);
+      if (!valid) allValid = false;
+    });
+
+    if (!allValid) {
+      // Focus the first invalid field for accessibility
+      const firstInvalid = contactForm.querySelector(".has-error input, .has-error textarea");
+      if (firstInvalid) firstInvalid.focus();
+      return;
+    }
+
+    // Simulated submission — replace with a real API/fetch call
+    submitForm();
+  });
+
+  function submitForm() {
+    formSuccess.classList.add("is-visible");
+    contactForm.reset();
+
+    setTimeout(() => {
+      formSuccess.classList.remove("is-visible");
+    }, 5000);
+  }
 })();

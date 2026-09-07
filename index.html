@@ -3,130 +3,459 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lumen &mdash; Smart Calculator</title>
+  <title>Prudhvi raj &mdash; Software Engineer Portfolio</title>
+  <meta name="description" content="Portfolio of Prudhvi raj, a software engineer specializing in full-stack web development." />
 
-  <!-- Space Grotesk (display/UI), JetBrains Mono (numeric readout), Inter (small text) -->
+  <!-- Outfit (display/headings), Inter (body), Fira Code (tags/labels — a nod to the engineer subject matter) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body data-theme="dark">
 
-  <div class="app-shell">
+  <!-- ============================= -->
+  <!-- STICKY NAVBAR                 -->
+  <!-- ============================= -->
+  <header class="navbar" id="navbar">
+    <nav class="nav-inner">
+      <a href="#home" class="logo">
+        <span class="logo-bracket">&lt;</span>Prudhvi<span class="logo-accent">.dev</span><span class="logo-bracket">/&gt;</span>
+      </a>
 
-    <!-- ============================= -->
-    <!-- CALCULATOR CARD               -->
-    <!-- ============================= -->
-    <main class="calculator" id="calculator">
-
-      <!-- Top bar: brand, mode switch, theme toggle, history toggle -->
-      <header class="calc-topbar">
-        <div class="brand">
-          <span class="brand-glyph">&fnof;(x)</span>
-          <span class="brand-name">Lumen</span>
-        </div>
-
-        <div class="topbar-actions">
-          <!-- Standard / Scientific mode switch -->
-          <button class="mode-toggle" id="modeToggle" aria-pressed="false" title="Toggle scientific mode">
-            <span>Scientific</span>
-          </button>
-
-          <!-- Light / dark theme toggle -->
-          <button class="icon-btn" id="themeToggle" aria-label="Toggle light/dark theme" title="Toggle theme">
-            <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-
-          <!-- History drawer toggle -->
-          <button class="icon-btn" id="historyToggle" aria-label="Toggle calculation history" title="History">
-            <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.7 3M3 4v5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <!-- ============================= -->
-      <!-- DISPLAY                       -->
-      <!-- ============================= -->
-      <section class="display" id="display">
-        <div class="display-expression" id="expression" aria-live="polite">0</div>
-        <div class="display-result-row">
-          <div class="display-result" id="result">0</div>
-          <button class="copy-btn" id="copyBtn" aria-label="Copy result" title="Copy result">
-            <svg class="icon" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-        <span class="copy-toast" id="copyToast">Copied</span>
-      </section>
-
-      <!-- ============================= -->
-      <!-- SCIENTIFIC PANEL (hidden by default) -->
-      <!-- ============================= -->
-      <section class="scientific-panel" id="scientificPanel">
-        <button class="btn btn-sci" data-action="sin">sin</button>
-        <button class="btn btn-sci" data-action="cos">cos</button>
-        <button class="btn btn-sci" data-action="tan">tan</button>
-        <button class="btn btn-sci" data-action="sqrt">&radic;x</button>
-        <button class="btn btn-sci" data-action="square">x&sup2;</button>
-        <button class="btn btn-sci" data-action="power">x^y</button>
-        <button class="btn btn-sci" data-action="pi">&pi;</button>
-        <button class="btn btn-sci" data-action="e">e</button>
-        <button class="btn btn-sci" data-action="log">log</button>
-      </section>
-
-      <!-- ============================= -->
-      <!-- BUTTON GRID                   -->
-      <!-- ============================= -->
-      <section class="keypad">
-        <button class="btn btn-fn" data-action="clear">C</button>
-        <button class="btn btn-fn" data-action="delete">&#9003;</button>
-        <button class="btn btn-fn" data-action="percent">%</button>
-        <button class="btn btn-op" data-action="divide">&divide;</button>
-
-        <button class="btn btn-num" data-value="7">7</button>
-        <button class="btn btn-num" data-value="8">8</button>
-        <button class="btn btn-num" data-value="9">9</button>
-        <button class="btn btn-op" data-action="multiply">&times;</button>
-
-        <button class="btn btn-num" data-value="4">4</button>
-        <button class="btn btn-num" data-value="5">5</button>
-        <button class="btn btn-num" data-value="6">6</button>
-        <button class="btn btn-op" data-action="subtract">&minus;</button>
-
-        <button class="btn btn-num" data-value="1">1</button>
-        <button class="btn btn-num" data-value="2">2</button>
-        <button class="btn btn-num" data-value="3">3</button>
-        <button class="btn btn-op" data-action="add">+</button>
-
-        <button class="btn btn-num btn-zero" data-value="0">0</button>
-        <button class="btn btn-num" data-value=".">.</button>
-        <button class="btn btn-equals" data-action="equals">=</button>
-      </section>
-    </main>
-
-    <!-- ============================= -->
-    <!-- HISTORY DRAWER                -->
-    <!-- ============================= -->
-    <aside class="history-drawer" id="historyDrawer" aria-hidden="true">
-      <div class="history-header">
-        <h2>History</h2>
-        <button class="text-btn" id="clearHistory">Clear all</button>
-      </div>
-      <ul class="history-list" id="historyList">
-        <!-- History items injected by script.js -->
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#home" class="nav-link is-active" data-nav>Home</a></li>
+        <li><a href="#about" class="nav-link" data-nav>About</a></li>
+        <li><a href="#skills" class="nav-link" data-nav>Skills</a></li>
+        <li><a href="#education" class="nav-link" data-nav>Education</a></li>
+        <li><a href="#projects" class="nav-link" data-nav>Projects</a></li>
+        <li><a href="#contact" class="nav-link" data-nav>Contact</a></li>
       </ul>
-      <p class="history-empty" id="historyEmpty">No calculations yet.</p>
-    </aside>
 
-    <!-- Backdrop for mobile history drawer -->
-    <div class="drawer-backdrop" id="drawerBackdrop"></div>
-  </div>
+      <div class="nav-actions">
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle light/dark theme" title="Toggle theme">
+          <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
 
-  <footer class="page-footer">
-    <p>Lumen Calculator &mdash; built with HTML, CSS &amp; vanilla JavaScript.</p>
+        <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ============================= -->
+    <!-- HERO SECTION                  -->
+    <!-- ============================= -->
+    <section class="hero" id="home">
+      <div class="hero-glow" aria-hidden="true"></div>
+
+      <div class="hero-inner">
+        <p class="hero-eyebrow reveal">Hi, my name is</p>
+        <h1 class="hero-name reveal">Prudhvi raj</h1>
+        <h2 class="hero-role reveal">
+          I build <span class="typing-text" id="typingText"></span><span class="typing-cursor">|</span>
+        </h2>
+        <p class="hero-desc reveal">
+          A software engineer who designs and builds fast, accessible, and scalable web
+          applications &mdash; from pixel-perfect interfaces to resilient backend systems.
+        </p>
+
+        <div class="hero-actions reveal">
+          <a href="#projects" class="btn btn-primary">View Projects</a>
+          <a href="#" class="btn btn-ghost" id="resumeBtn" download>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download Resume
+          </a>
+        </div>
+
+        <div class="hero-socials reveal">
+          <a href="https://github.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.09 3.29 9.4 7.86 10.93.57.1.78-.25.78-.55v-1.94c-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.71 1.25 3.37.96.1-.75.4-1.25.73-1.54-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11 11 0 015.8 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.43-2.7 5.4-5.28 5.69.42.36.78 1.07.78 2.16v3.2c0 .3.2.66.79.55A10.52 10.52 0 0023.5 12c0-6.35-5.15-11.5-11.5-11.5z"/></svg>
+          </a>
+          <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.61 0 4.28 2.38 4.28 5.47v6.27zM5.34 7.43a2.07 2.07 0 11.01-4.13 2.07 2.07 0 01-.01 4.13zM7.12 20.45H3.55V9h3.57v11.45z"/></svg>
+          </a>
+          <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Twitter / X">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.75h3.3l-7.2 8.23 8.47 10.27h-6.63l-5.2-6.4-5.94 6.4H1.73l7.7-8.8L1.3 2.75h6.8l4.7 5.85 5.44-5.85zm-1.16 16.66h1.83L7.03 4.53H5.06l12.02 14.88z"/></svg>
+          </a>
+        </div>
+
+        <a href="#about" class="scroll-indicator" aria-label="Scroll to About section">
+          <span></span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============================= -->
+    <!-- ABOUT SECTION                 -->
+    <!-- ============================= -->
+    <section class="section about" id="about">
+      <p class="section-eyebrow reveal">01. Get to know me</p>
+      <h2 class="section-title reveal">About Me</h2>
+
+      <div class="about-grid">
+        <div class="about-photo reveal">
+          <div class="photo-frame">
+            <img src="images/profile.jpg" alt="Portrait of Prudhvi raj" />
+          </div>
+        </div>
+
+        <div class="about-content reveal">
+          <p>
+            I'm a software engineer with 4+ years of experience building products across the
+            stack &mdash; from responsive front-end interfaces to reliable APIs and cloud
+            infrastructure. I care deeply about clean architecture, accessibility, and
+            shipping software that feels effortless to use.
+          </p>
+          <p>
+            Outside of work, I contribute to open-source projects, write about web
+            performance, and mentor junior developers making their first move into tech.
+            I'm always looking for interesting problems to solve.
+          </p>
+
+          <ul class="about-facts">
+            <li><span class="fact-label">Location</span><span class="fact-value">Bengaluru, India</span></li>
+            <li><span class="fact-label">Experience</span><span class="fact-value">4+ Years</span></li>
+            <li><span class="fact-label">Focus</span><span class="fact-value">Full-Stack Web Development</span></li>
+            <li><span class="fact-label">Availability</span><span class="fact-value">Open to opportunities</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= -->
+    <!-- SKILLS SECTION                -->
+    <!-- ============================= -->
+    <section class="section skills" id="skills">
+      <p class="section-eyebrow reveal">02. What I work with</p>
+      <h2 class="section-title reveal">Skills &amp; Tools</h2>
+
+      <div class="skills-grid">
+        <div class="skill-group reveal">
+          <h3 class="skill-group-title">Frontend</h3>
+
+          <div class="skill-bar" data-skill="95">
+            <div class="skill-bar-head"><span>JavaScript / TypeScript</span><span class="skill-percent">95%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+
+          <div class="skill-bar" data-skill="90">
+            <div class="skill-bar-head"><span>React.js</span><span class="skill-percent">90%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+
+          <div class="skill-bar" data-skill="88">
+            <div class="skill-bar-head"><span>HTML5 &amp; CSS3</span><span class="skill-percent">88%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+        </div>
+
+        <div class="skill-group reveal">
+          <h3 class="skill-group-title">Backend</h3>
+
+          <div class="skill-bar" data-skill="85">
+            <div class="skill-bar-head"><span>Node.js / Express</span><span class="skill-percent">85%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+
+          <div class="skill-bar" data-skill="78">
+            <div class="skill-bar-head"><span>Python / Django</span><span class="skill-percent">78%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+
+          <div class="skill-bar" data-skill="80">
+            <div class="skill-bar-head"><span>PostgreSQL / MongoDB</span><span class="skill-percent">80%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+        </div>
+
+        <div class="skill-group reveal">
+          <h3 class="skill-group-title">Tools &amp; Platforms</h3>
+
+          <div class="skill-bar" data-skill="82">
+            <div class="skill-bar-head"><span>Git &amp; GitHub</span><span class="skill-percent">82%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+
+          <div class="skill-bar" data-skill="75">
+            <div class="skill-bar-head"><span>Docker</span><span class="skill-percent">75%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+
+          <div class="skill-bar" data-skill="70">
+            <div class="skill-bar-head"><span>AWS</span><span class="skill-percent">70%</span></div>
+            <div class="skill-track"><div class="skill-fill"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= -->
+    <!-- EDUCATION SECTION             -->
+    <!-- ============================= -->
+    <section class="section education" id="education">
+      <p class="section-eyebrow reveal">03. My background</p>
+      <h2 class="section-title reveal">Education</h2>
+
+      <div class="timeline">
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-card">
+            <span class="timeline-date">2023 &ndash; 2027</span>
+            <h3>B.Tech in Computer Science</h3>
+            <p class="timeline-place">Kakatiya Institute of Technology, Warangal</p>
+            <p class="timeline-desc">
+              Graduated with distinction. Focused on data structures, algorithms, distributed
+              systems, and web development. Led the college's coding club for two years.
+            </p>
+          </div>
+        </div>
+
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-card">
+            <span class="timeline-date">2026</span>
+            <h3>Full-Stack Web Development Certification</h3>
+            <p class="timeline-place">freeCodeCamp</p>
+            <p class="timeline-desc">
+              Completed an intensive certification covering responsive design, JavaScript
+              algorithms, front-end libraries, and back-end API development.
+            </p>
+          </div>
+        </div>
+
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-card">
+            <span class="timeline-date">2021 &ndash; 2023</span>
+            <h3>Narayana Junior College </h3>
+            <p class="timeline-place">Delhi Public School</p>
+            <p class="timeline-desc">
+              Specialized in Physics, Chemistry, and Mathematics. Developed an early interest
+              in programming through school robotics competitions.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= -->
+    <!-- PROJECTS SECTION              -->
+    <!-- ============================= -->
+    <section class="section projects" id="projects">
+      <p class="section-eyebrow reveal">04. Recent work</p>
+      <h2 class="section-title reveal">Featured Projects</h2>
+
+      <div class="projects-grid">
+
+        <article class="project-card reveal">
+          <div class="project-window">
+            <div class="window-controls"><span></span><span></span><span></span></div>
+            <span class="window-title">taskflow-app</span>
+          </div>
+          <div class="project-thumb">
+            <img src="images/project1.jpg" alt="Screenshot of TaskFlow project management app" />
+          </div>
+          <div class="project-body">
+            <h3>TaskFlow &mdash; Project Manager</h3>
+            <p>
+              A collaborative task management app with real-time updates, drag-and-drop
+              boards, and team workspaces built on a Node.js and PostgreSQL backend.
+            </p>
+            <ul class="project-tags">
+              <li>React</li><li>Node.js</li><li>PostgreSQL</li><li>Socket.io</li>
+            </ul>
+            <div class="project-links">
+              <a href="#" class="project-link">Live Demo</a>
+              <a href="#" class="project-link project-link-alt">Source Code</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="project-card reveal">
+          <div class="project-window">
+            <div class="window-controls"><span></span><span></span><span></span></div>
+            <span class="window-title">weatherly.tsx</span>
+          </div>
+          <div class="project-thumb">
+            <img src="images/project2.jpg" alt="Screenshot of Weatherly forecast app" />
+          </div>
+          <div class="project-body">
+            <h3>Weatherly &mdash; Forecast App</h3>
+            <p>
+              A sleek weather dashboard with animated forecasts, location search, and
+              severe-weather alerts, powered by a third-party weather API.
+            </p>
+            <ul class="project-tags">
+              <li>TypeScript</li><li>React</li><li>Chart.js</li><li>REST API</li>
+            </ul>
+            <div class="project-links">
+              <a href="#" class="project-link">Live Demo</a>
+              <a href="#" class="project-link project-link-alt">Source Code</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="project-card reveal">
+          <div class="project-window">
+            <div class="window-controls"><span></span><span></span><span></span></div>
+            <span class="window-title">shopnest-api</span>
+          </div>
+          <div class="project-thumb">
+            <img src="images/project3.jpg" alt="Screenshot of ShopNest e-commerce platform" />
+          </div>
+          <div class="project-body">
+            <h3>ShopNest &mdash; E-Commerce Platform</h3>
+            <p>
+              A full-featured e-commerce platform with a custom admin dashboard, Stripe
+              checkout integration, and a headless product catalog API.
+            </p>
+            <ul class="project-tags">
+              <li>Next.js</li><li>Express</li><li>MongoDB</li><li>Stripe</li>
+            </ul>
+            <div class="project-links">
+              <a href="#" class="project-link">Live Demo</a>
+              <a href="#" class="project-link project-link-alt">Source Code</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="project-card reveal">
+          <div class="project-window">
+            <div class="window-controls"><span></span><span></span><span></span></div>
+            <span class="window-title">devlink.py</span>
+          </div>
+          <div class="project-thumb">
+            <img src="images/project4.jpg" alt="Screenshot of DevLink developer network app" />
+          </div>
+          <div class="project-body">
+            <h3>DevLink &mdash; Developer Network</h3>
+            <p>
+              A social platform for developers to share projects, ask questions, and build
+              public profiles, backed by a Django REST API.
+            </p>
+            <ul class="project-tags">
+              <li>Django</li><li>Python</li><li>PostgreSQL</li><li>Docker</li>
+            </ul>
+            <div class="project-links">
+              <a href="#" class="project-link">Live Demo</a>
+              <a href="#" class="project-link project-link-alt">Source Code</a>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ============================= -->
+    <!-- CONTACT SECTION               -->
+    <!-- ============================= -->
+    <section class="section contact" id="contact">
+      <p class="section-eyebrow reveal">05. Get in touch</p>
+      <h2 class="section-title reveal">Let's Work Together</h2>
+      <p class="contact-intro reveal">
+        Have a project in mind or just want to say hello? My inbox is always open.
+      </p>
+
+      <div class="contact-grid">
+        <div class="contact-info reveal">
+          <div class="contact-info-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 4h16v16H4V4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 6l8 7 8-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>prudhvi@example.com</span>
+          </div>
+          <div class="contact-info-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.68 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0122 16.92z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>+91 98765 43210</span>
+          </div>
+          <div class="contact-info-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M21 10c0 6-9 12-9 12S3 16 3 10a9 9 0 1118 0z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+            <span>Bengaluru, India</span>
+          </div>
+
+          <div class="contact-socials">
+            <a href="https://github.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="GitHub">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.09 3.29 9.4 7.86 10.93.57.1.78-.25.78-.55v-1.94c-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.71 1.25 3.37.96.1-.75.4-1.25.73-1.54-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11 11 0 015.8 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.43-2.7 5.4-5.28 5.69.42.36.78 1.07.78 2.16v3.2c0 .3.2.66.79.55A10.52 10.52 0 0023.5 12c0-6.35-5.15-11.5-11.5-11.5z"/></svg>
+            </a>
+            <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="LinkedIn">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.61 0 4.28 2.38 4.28 5.47v6.27zM5.34 7.43a2.07 2.07 0 11.01-4.13 2.07 2.07 0 01-.01 4.13zM7.12 20.45H3.55V9h3.57v11.45z"/></svg>
+            </a>
+            <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Twitter / X">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.75h3.3l-7.2 8.23 8.47 10.27h-6.63l-5.2-6.4-5.94 6.4H1.73l7.7-8.8L1.3 2.75h6.8l4.7 5.85 5.44-5.85zm-1.16 16.66h1.83L7.03 4.53H5.06l12.02 14.88z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <form class="contact-form reveal" id="contactForm" novalidate>
+          <div class="form-group">
+            <label for="nameInput">Name</label>
+            <input type="text" id="nameInput" name="name" placeholder="Your full name" autocomplete="name" />
+            <span class="form-error" id="nameError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="emailInput">Email</label>
+            <input type="email" id="emailInput" name="email" placeholder="you@example.com" autocomplete="email" />
+            <span class="form-error" id="emailError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="subjectInput">Subject</label>
+            <input type="text" id="subjectInput" name="subject" placeholder="What's this about?" />
+            <span class="form-error" id="subjectError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="messageInput">Message</label>
+            <textarea id="messageInput" name="message" rows="5" placeholder="Tell me about your project..."></textarea>
+            <span class="form-error" id="messageError"></span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">Send Message</button>
+
+          <p class="form-success" id="formSuccess" role="status">
+            Thanks for reaching out! Your message has been noted &mdash; I'll reply soon.
+          </p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================= -->
+  <!-- FOOTER                        -->
+  <!-- ============================= -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="#home" class="logo footer-logo">
+        <span class="logo-bracket">&lt;</span>prudhvi<span class="logo-accent">.dev</span><span class="logo-bracket">/&gt;</span>
+      </a>
+      <p class="footer-tagline">Designing and building software with care, one commit at a time.</p>
+
+      <div class="footer-socials">
+        <a href="https://github.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.09 3.29 9.4 7.86 10.93.57.1.78-.25.78-.55v-1.94c-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.71 1.25 3.37.96.1-.75.4-1.25.73-1.54-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11 11 0 015.8 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.43-2.7 5.4-5.28 5.69.42.36.78 1.07.78 2.16v3.2c0 .3.2.66.79.55A10.52 10.52 0 0023.5 12c0-6.35-5.15-11.5-11.5-11.5z"/></svg>
+        </a>
+        <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="LinkedIn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.61 0 4.28 2.38 4.28 5.47v6.27zM5.34 7.43a2.07 2.07 0 11.01-4.13 2.07 2.07 0 01-.01 4.13zM7.12 20.45H3.55V9h3.57v11.45z"/></svg>
+        </a>
+        <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Twitter / X">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.75h3.3l-7.2 8.23 8.47 10.27h-6.63l-5.2-6.4-5.94 6.4H1.73l7.7-8.8L1.3 2.75h6.8l4.7 5.85 5.44-5.85zm-1.16 16.66h1.83L7.03 4.53H5.06l12.02 14.88z"/></svg>
+        </a>
+      </div>
+
+      <p class="footer-copy">&copy; <span id="currentYear"></span> Prudhvi raj. All rights reserved.</p>
+    </div>
   </footer>
+
+  <!-- ============================= -->
+  <!-- BACK TO TOP BUTTON            -->
+  <!-- ============================= -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
 
   <script src="script.js"></script>
 </body>
