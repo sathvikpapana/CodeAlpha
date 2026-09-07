@@ -1,208 +1,536 @@
 /* =====================================================================
-   SPECTRA GALLERY — SCRIPT.JS
+   LUMEN CALCULATOR — SCRIPT.JS
    Responsible for:
-     1. A single source-of-truth data array describing every image
-     2. Category filtering of the grid
-     3. Lightbox open/close, prev/next navigation
-     4. Keyboard support (Esc, ArrowLeft, ArrowRight)
-     5. Small entrance-animation polish via IntersectionObserver
+     1. Calculator state machine (digit entry, operators, chaining)
+     2. Scientific functions (sin, cos, tan, sqrt, square, power, π, e, log)
+     3. History panel backed by localStorage (last 10 calculations)
+     4. Copy-to-clipboard, theme toggle, ripple FX
+     5. Full keyboard support
    ===================================================================== */
 
 (function () {
   "use strict";
 
   /* -------------------------------------------------------------------
-     1. IMAGE DATA
-     Single source of truth. If you add/remove images, update this
-     array AND the matching <figure> markup in index.html (or switch
-     to fully JS-rendered markup — see renderGrid() below, which is
-     already wired up and will happily take over rendering for you).
+     DOM REFERENCES
   ------------------------------------------------------------------- */
-  const imageData = [
-    { id: 0,  category: "ai",       tag: "AI",       title: "Neural Network Visualization", src: "images/ai1.jpg" },
-    { id: 1,  category: "ai",       tag: "AI",       title: "Machine Learning Model",        src: "images/ai2.jpg" },
-    { id: 2,  category: "ai",       tag: "AI",       title: "Generative AI Artwork",          src: "images/ai3.jpg" },
-    { id: 3,  category: "coding",   tag: "Coding",   title: "Source Code Close-up",           src: "images/code1.jpg" },
-    { id: 4,  category: "coding",   tag: "Coding",   title: "Developer Workspace",             src: "images/code2.jpg" },
-    { id: 5,  category: "coding",   tag: "Coding",   title: "Terminal & Build Scripts",        src: "images/code3.jpg" },
-    { id: 6,  category: "robotics", tag: "Robotics", title: "Robotic Arm Assembly",            src: "images/robot1.jpg" },
-    { id: 7,  category: "robotics", tag: "Robotics", title: "Humanoid Prototype",              src: "images/robot2.jpg" },
-    { id: 8,  category: "robotics", tag: "Robotics", title: "Autonomous Drone",                src: "images/robot3.jpg" },
-    { id: 9,  category: "cloud",    tag: "Cloud",    title: "Data Center Racks",                src: "images/cloud1.jpg" },
-    { id: 10, category: "cloud",    tag: "Cloud",    title: "Network Architecture",             src: "images/cloud2.jpg" },
-    { id: 11, category: "cloud",    tag: "Cloud",    title: "Storage & Sync",                   src: "images/cloud3.jpg" },
-  ];
+  const expressionEl   = document.getElementById("expression");
+  const resultEl       = document.getElementById("result");
+  const keypad          = document.querySelector(".keypad");
+  const scientificPanel = document.getElementById("scientificPanel");
+  const modeToggle       = document.getElementById("modeToggle");
+  const themeToggle       = document.getElementById("themeToggle");
+  const historyToggle      = document.getElementById("historyToggle");
+  const historyDrawer       = document.getElementById("historyDrawer");
+  const drawerBackdrop        = document.getElementById("drawerBackdrop");
+  const historyList             = document.getElementById("historyList");
+  const historyEmpty             = document.getElementById("historyEmpty");
+  const clearHistoryBtn           = document.getElementById("clearHistory");
+  const copyBtn                    = document.getElementById("copyBtn");
+  const copyToast                   = document.getElementById("copyToast");
+
+  const HISTORY_KEY = "lumen_calc_history";
+  const THEME_KEY = "lumen_calc_theme";
+  const MAX_HISTORY = 10;
 
   /* -------------------------------------------------------------------
-     2. DOM REFERENCES
+     CALCULATOR STATE
+     A classic "running total" state machine (not a full expression
+     parser) — predictable, easy to reason about, and matches the
+     behaviour users expect from a standard calculator.
   ------------------------------------------------------------------- */
-  const galleryGrid   = document.getElementById("galleryGrid");
-  const emptyState     = document.getElementById("emptyState");
-  const filterTrack    = document.getElementById("filterTrack");
-
-  const lightbox        = document.getElementById("lightbox");
-  const lightboxBackdrop = document.getElementById("lightboxBackdrop");
-  const lightboxImage    = document.getElementById("lightboxImage");
-  const lightboxCaption  = document.getElementById("lightboxCaption");
-  const lightboxTag      = document.getElementById("lightboxTag");
-  const lightboxCounter  = document.getElementById("lightboxCounter");
-  const lightboxClose    = document.getElementById("lightboxClose");
-  const lightboxPrev     = document.getElementById("lightboxPrev");
-  const lightboxNext     = document.getElementById("lightboxNext");
-
-  /* Tracks which subset of imageData is currently visible in the grid,
-     so prev/next inside the lightbox respects the active filter. */
-  let activeFilter = "all";
-  let visibleItems = [...imageData];
-  let currentIndex = 0; // index within visibleItems, not imageData
+  const state = {
+    previous: null,     // number entered before the operator, as string
+    operator: null,     // '+', '-', '*', '/'
+    current: "0",        // number currently being typed / displayed
+    overwrite: false,     // true right after an operator or equals,
+                           // meaning the next digit should start fresh
+    expressionText: "",    // human-readable trail shown above the result
+  };
 
   /* -------------------------------------------------------------------
-     3. GRID RENDERING
-     The HTML already ships with static <figure> markup for graceful
-     no-JS degradation. Here we re-render from imageData so filtering /
-     indexing always stays perfectly in sync with the data model.
+     RENDERING
   ------------------------------------------------------------------- */
-  function renderGrid(items) {
-    galleryGrid.innerHTML = "";
+  function render() {
+    resultEl.textContent = formatForDisplay(state.current);
+    resultEl.classList.remove("is-error");
+    expressionEl.textContent = state.expressionText || "0";
+  }
 
-    if (items.length === 0) {
-      emptyState.hidden = false;
+  function formatForDisplay(value) {
+    if (value === "Error") return "Error";
+    // Avoid runaway decimal length while keeping the value accurate
+    const num = Number(value);
+    if (Number.isNaN(num)) return value;
+    if (!isFinite(num)) return "Error";
+
+    // Preserve a trailing decimal point while the user is still typing
+    if (typeof value === "string" && value.endsWith(".")) return value;
+
+    const str = num.toString();
+    if (str.length <= 14) return str;
+    return num.toPrecision(10).replace(/\.?0+$/, "");
+  }
+
+  function showError() {
+    state.current = "Error";
+    state.previous = null;
+    state.operator = null;
+    state.overwrite = true;
+    resultEl.textContent = "Error";
+    resultEl.classList.add("is-error");
+  }
+
+  /* -------------------------------------------------------------------
+     OPERATOR SYMBOLS (internal key -> display glyph)
+  ------------------------------------------------------------------- */
+  const OP_SYMBOL = { add: "+", subtract: "\u2212", multiply: "\u00d7", divide: "\u00f7", power: "^" };
+
+  /* -------------------------------------------------------------------
+     CORE INPUT HANDLERS
+  ------------------------------------------------------------------- */
+  function inputDigit(digit) {
+    if (state.current === "Error" || state.overwrite) {
+      state.current = digit === "." ? "0." : digit;
+      state.overwrite = false;
+      render();
       return;
     }
-    emptyState.hidden = true;
 
-    items.forEach((item, i) => {
-      const figure = document.createElement("figure");
-      figure.className = "gallery-item";
-      figure.dataset.category = item.category;
-      figure.dataset.visibleIndex = i;
-      // Slight stagger on the rise-in animation for a polished cascade
-      figure.style.animationDelay = `${Math.min(i * 40, 400)}ms`;
+    if (digit === "." && state.current.includes(".")) return; // no double decimals
+    if (state.current === "0" && digit !== ".") {
+      state.current = digit; // replace leading zero
+    } else {
+      state.current += digit;
+    }
+    render();
+  }
 
-      figure.innerHTML = `
-        <img src="${item.src}" alt="${item.title}" loading="lazy" />
-        <figcaption class="item-overlay">
-          <span class="item-tag">${item.tag}</span>
-          <span class="item-title">${item.title}</span>
-        </figcaption>
-      `;
+  function chooseOperator(opKey) {
+    if (state.current === "Error") return;
 
-      figure.addEventListener("click", () => openLightbox(i));
-      galleryGrid.appendChild(figure);
-    });
+    // Chain operations: if an operator is already pending, resolve it first
+    if (state.operator && !state.overwrite) {
+      compute();
+    }
+
+    state.previous = state.current;
+    state.operator = opKey;
+    state.overwrite = true;
+    state.expressionText = `${trimTrailingDot(state.previous)} ${OP_SYMBOL[opKey]}`;
+    render();
+  }
+
+  function trimTrailingDot(v) {
+    return v.endsWith(".") ? v.slice(0, -1) : v;
+  }
+
+  function compute() {
+    if (state.operator === null || state.previous === null) return;
+
+    const a = parseFloat(state.previous);
+    const b = parseFloat(state.current);
+    const symbol = OP_SYMBOL[state.operator]; // captured before we clear state.operator
+    let output;
+
+    switch (state.operator) {
+      case "add":
+        output = a + b;
+        break;
+      case "subtract":
+        output = a - b;
+        break;
+      case "multiply":
+        output = a * b;
+        break;
+      case "divide":
+        // Divide-by-zero error handling
+        if (b === 0) {
+          showError();
+          addHistoryEntry(`${a} \u00f7 ${b}`, "Error");
+          return;
+        }
+        output = a / b;
+        break;
+      default:
+        return;
+    }
+
+    state.expressionText = `${a} ${symbol} ${b} =`;
+    state.current = String(output);
+    state.previous = null;
+    state.operator = null;
+    state.overwrite = true;
+
+    addHistoryEntry(`${a} ${symbol} ${b}`, formatForDisplay(state.current));
+    render();
+    pulseResult();
+  }
+
+  function handleEquals() {
+    if (state.current === "Error") return;
+    if (state.operator === null) return; // nothing to compute yet
+    compute();
+  }
+
+  function clearAll() {
+    state.previous = null;
+    state.operator = null;
+    state.current = "0";
+    state.overwrite = false;
+    state.expressionText = "";
+    render();
+  }
+
+  function deleteLast() {
+    if (state.current === "Error" || state.overwrite) {
+      clearAll();
+      return;
+    }
+    state.current = state.current.length > 1 ? state.current.slice(0, -1) : "0";
+    render();
+  }
+
+  function applyPercent() {
+    if (state.current === "Error") return;
+    const value = parseFloat(state.current);
+    state.current = String(value / 100);
+    state.overwrite = true;
+    render();
   }
 
   /* -------------------------------------------------------------------
-     4. FILTERING
+     SCIENTIFIC FUNCTIONS
+     All trig functions operate in degrees for everyday usability.
   ------------------------------------------------------------------- */
-  function applyFilter(category) {
-    activeFilter = category;
-    visibleItems = category === "all"
-      ? [...imageData]
-      : imageData.filter((item) => item.category === category);
+  function applyScientific(action) {
+    if (state.current === "Error") return;
+    const value = parseFloat(state.current);
+    let output;
+    let label;
 
-    renderGrid(visibleItems);
+    switch (action) {
+      case "sin":
+        output = Math.sin(toRadians(value));
+        label = `sin(${value})`;
+        break;
+      case "cos":
+        output = Math.cos(toRadians(value));
+        label = `cos(${value})`;
+        break;
+      case "tan":
+        output = Math.tan(toRadians(value));
+        label = `tan(${value})`;
+        break;
+      case "sqrt":
+        if (value < 0) return showError();
+        output = Math.sqrt(value);
+        label = `\u221a(${value})`;
+        break;
+      case "square":
+        output = value * value;
+        label = `${value}\u00b2`;
+        break;
+      case "power":
+        // x^y — sets up a pending "power" operator so the user can type
+        // the exponent next, reusing the standard operator flow
+        chooseOperator("power");
+        return;
+      case "pi":
+        output = Math.PI;
+        label = "\u03c0";
+        break;
+      case "e":
+        output = Math.E;
+        label = "e";
+        break;
+      case "log":
+        if (value <= 0) return showError();
+        output = Math.log10(value);
+        label = `log(${value})`;
+        break;
+      default:
+        return;
+    }
 
-    // Sync active state on filter buttons
-    document.querySelectorAll(".filter-btn").forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.filter === category);
+    state.current = String(output);
+    state.expressionText = `${label} =`;
+    state.overwrite = true;
+    render();
+    pulseResult();
+    addHistoryEntry(label, formatForDisplay(state.current));
+  }
+
+  function toRadians(deg) {
+    return (deg * Math.PI) / 180;
+  }
+
+  /* Extend compute() to understand the "power" pseudo-operator */
+  const originalCompute = compute;
+  compute = function () {
+    if (state.operator === "power") {
+      const a = parseFloat(state.previous);
+      const b = parseFloat(state.current);
+      const output = Math.pow(a, b);
+      state.expressionText = `${a} ^ ${b} =`;
+      state.current = String(output);
+      state.previous = null;
+      state.operator = null;
+      state.overwrite = true;
+      addHistoryEntry(`${a} ^ ${b}`, formatForDisplay(state.current));
+      render();
+      pulseResult();
+      return;
+    }
+    originalCompute();
+  };
+
+  /* -------------------------------------------------------------------
+     RESULT PULSE ANIMATION (triggered on '=' and scientific results)
+  ------------------------------------------------------------------- */
+  function pulseResult() {
+    resultEl.classList.remove("is-pulsing");
+    // Force reflow so the animation can restart on repeated presses
+    void resultEl.offsetWidth;
+    resultEl.classList.add("is-pulsing");
+  }
+
+  /* -------------------------------------------------------------------
+     HISTORY (localStorage, capped at MAX_HISTORY entries)
+  ------------------------------------------------------------------- */
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      console.warn("Could not read calculator history:", err);
+      return [];
+    }
+  }
+
+  function saveHistory(list) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+    } catch (err) {
+      console.warn("Could not save calculator history:", err);
+    }
+  }
+
+  function addHistoryEntry(expression, result) {
+    const list = loadHistory();
+    list.unshift({ expression, result, ts: Date.now() });
+    const trimmed = list.slice(0, MAX_HISTORY);
+    saveHistory(trimmed);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = loadHistory();
+    historyList.innerHTML = "";
+    historyEmpty.hidden = list.length > 0;
+
+    list.forEach((entry) => {
+      const li = document.createElement("li");
+      li.className = "history-item";
+      li.innerHTML = `
+        <div class="history-expression">${entry.expression}</div>
+        <div class="history-result">${entry.result}</div>
+      `;
+      // Clicking a history item loads its result back into the display
+      li.addEventListener("click", () => {
+        state.current = String(entry.result);
+        state.previous = null;
+        state.operator = null;
+        state.overwrite = true;
+        state.expressionText = entry.expression + " =";
+        render();
+        closeHistoryDrawer();
+      });
+      historyList.appendChild(li);
     });
   }
 
-  filterTrack.addEventListener("click", (e) => {
-    const btn = e.target.closest(".filter-btn");
-    if (!btn) return;
-    applyFilter(btn.dataset.filter);
+  function clearHistory() {
+    saveHistory([]);
+    renderHistory();
+  }
+
+  /* -------------------------------------------------------------------
+     HISTORY DRAWER OPEN/CLOSE (mobile overlay + desktop panel)
+  ------------------------------------------------------------------- */
+  function openHistoryDrawer() {
+    historyDrawer.classList.add("is-open");
+    drawerBackdrop.classList.add("is-open");
+    historyDrawer.setAttribute("aria-hidden", "false");
+  }
+
+  function closeHistoryDrawer() {
+    historyDrawer.classList.remove("is-open");
+    drawerBackdrop.classList.remove("is-open");
+    historyDrawer.setAttribute("aria-hidden", "true");
+  }
+
+  historyToggle.addEventListener("click", () => {
+    historyDrawer.classList.contains("is-open") ? closeHistoryDrawer() : openHistoryDrawer();
+  });
+  drawerBackdrop.addEventListener("click", closeHistoryDrawer);
+  clearHistoryBtn.addEventListener("click", clearHistory);
+
+  /* -------------------------------------------------------------------
+     THEME TOGGLE (persisted in localStorage)
+  ------------------------------------------------------------------- */
+  function applyTheme(theme) {
+    document.body.setAttribute("data-theme", theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }
+
+  themeToggle.addEventListener("click", () => {
+    const current = document.body.getAttribute("data-theme");
+    applyTheme(current === "dark" ? "light" : "dark");
+  });
+
+  (function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved) applyTheme(saved);
+  })();
+
+  /* -------------------------------------------------------------------
+     SCIENTIFIC MODE TOGGLE
+  ------------------------------------------------------------------- */
+  modeToggle.addEventListener("click", () => {
+    const isOpen = scientificPanel.classList.toggle("is-open");
+    modeToggle.setAttribute("aria-pressed", String(isOpen));
   });
 
   /* -------------------------------------------------------------------
-     5. LIGHTBOX
+     COPY RESULT TO CLIPBOARD
   ------------------------------------------------------------------- */
-  function openLightbox(index) {
-    currentIndex = index;
-    updateLightboxContent();
-    lightbox.classList.add("is-open");
-    lightbox.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden"; // lock background scroll
-    lightboxClose.focus();
+  copyBtn.addEventListener("click", async () => {
+    const text = resultEl.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      // Fallback for browsers without Clipboard API permission
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand("copy");
+      document.body.removeChild(temp);
+    }
+    copyToast.classList.add("is-visible");
+    setTimeout(() => copyToast.classList.remove("is-visible"), 1200);
+  });
+
+  /* -------------------------------------------------------------------
+     RIPPLE BUTTON ANIMATION
+  ------------------------------------------------------------------- */
+  function attachRipple(button) {
+    button.addEventListener("click", (e) => {
+      const rect = button.getBoundingClientRect();
+      const ripple = document.createElement("span");
+      const size = Math.max(rect.width, rect.height);
+      const x = (e.clientX || rect.left + rect.width / 2) - rect.left - size / 2;
+      const y = (e.clientY || rect.top + rect.height / 2) - rect.top - size / 2;
+
+      ripple.className = "ripple";
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+
+      button.appendChild(ripple);
+      ripple.addEventListener("animationend", () => ripple.remove());
+    });
   }
 
-  function closeLightbox() {
-    lightbox.classList.remove("is-open");
-    lightbox.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
+  document.querySelectorAll(".btn").forEach(attachRipple);
+
+  /* -------------------------------------------------------------------
+     BUTTON CLICK ROUTING (event delegation)
+  ------------------------------------------------------------------- */
+  document.querySelectorAll(".btn[data-value]").forEach((btn) => {
+    btn.addEventListener("click", () => inputDigit(btn.dataset.value));
+  });
+
+  keypad.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn[data-action]");
+    if (!btn) return;
+    routeAction(btn.dataset.action);
+  });
+
+  scientificPanel.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn[data-action]");
+    if (!btn) return;
+    routeAction(btn.dataset.action);
+  });
+
+  function routeAction(action) {
+    switch (action) {
+      case "clear":
+        clearAll();
+        break;
+      case "delete":
+        deleteLast();
+        break;
+      case "percent":
+        applyPercent();
+        break;
+      case "add":
+      case "subtract":
+      case "multiply":
+      case "divide":
+        chooseOperator(action);
+        break;
+      case "equals":
+        handleEquals();
+        break;
+      case "sin":
+      case "cos":
+      case "tan":
+      case "sqrt":
+      case "square":
+      case "power":
+      case "pi":
+      case "e":
+      case "log":
+        applyScientific(action);
+        break;
+    }
   }
 
-  function updateLightboxContent() {
-    const item = visibleItems[currentIndex];
-    if (!item) return;
+  /* -------------------------------------------------------------------
+     KEYBOARD SUPPORT
+  ------------------------------------------------------------------- */
+  const KEY_MAP = {
+    "+": "add",
+    "-": "subtract",
+    "*": "multiply",
+    "/": "divide",
+    "Enter": "equals",
+    "=": "equals",
+    "Backspace": "delete",
+    "Escape": "clear",
+    "%": "percent",
+  };
 
-    lightboxImage.src = item.src;
-    lightboxImage.alt = item.title;
-    lightboxCaption.textContent = item.title;
-    lightboxTag.textContent = item.tag;
-
-    const total = visibleItems.length;
-    const position = String(currentIndex + 1).padStart(2, "0");
-    const totalStr = String(total).padStart(2, "0");
-    lightboxCounter.textContent = `${position} / ${totalStr}`;
-  }
-
-  function showNext() {
-    currentIndex = (currentIndex + 1) % visibleItems.length;
-    updateLightboxContent();
-  }
-
-  function showPrev() {
-    currentIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
-    updateLightboxContent();
-  }
-
-  lightboxClose.addEventListener("click", closeLightbox);
-  lightboxBackdrop.addEventListener("click", closeLightbox);
-  lightboxNext.addEventListener("click", showNext);
-  lightboxPrev.addEventListener("click", showPrev);
-
-  /* Keyboard support: Esc closes, arrows navigate — only while the
-     lightbox is actually open, so we don't hijack page-level keys. */
   document.addEventListener("keydown", (e) => {
-    if (!lightbox.classList.contains("is-open")) return;
-
-    switch (e.key) {
-      case "Escape":
-        closeLightbox();
-        break;
-      case "ArrowRight":
-        showNext();
-        break;
-      case "ArrowLeft":
-        showPrev();
-        break;
+    if (/^[0-9]$/.test(e.key)) {
+      inputDigit(e.key);
+      return;
+    }
+    if (e.key === ".") {
+      inputDigit(".");
+      return;
+    }
+    if (KEY_MAP[e.key]) {
+      e.preventDefault();
+      routeAction(KEY_MAP[e.key]);
     }
   });
 
-  /* Basic swipe support for touch devices (mobile-friendly navigation) */
-  let touchStartX = 0;
-  lightbox.addEventListener("touchstart", (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  }, { passive: true });
-
-  lightbox.addEventListener("touchend", (e) => {
-    const touchEndX = e.changedTouches[0].screenX;
-    const delta = touchEndX - touchStartX;
-    const SWIPE_THRESHOLD = 40;
-
-    if (delta > SWIPE_THRESHOLD) showPrev();
-    else if (delta < -SWIPE_THRESHOLD) showNext();
-  }, { passive: true });
-
   /* -------------------------------------------------------------------
-     6. INIT
+     INIT
   ------------------------------------------------------------------- */
-  function init() {
-    renderGrid(imageData);
-    applyFilter("all");
-  }
-
-  document.addEventListener("DOMContentLoaded", init);
+  render();
+  renderHistory();
 })();
